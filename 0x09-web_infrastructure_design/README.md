@@ -1,74 +1,106 @@
 # 0x09. Web Infrastructure Design
 
-## Task 0: Simple Web Stack
-
-### 📌 Diagram Link
-[View Diagram](https://imgur.com/a/your_screenshot_link)  
-> *(Replace with your actual image link after uploading your draw.io diagram)*
+This repository contains whiteboard designs and explanations for two foundational web infrastructure setups: a simple single-server stack and a distributed three-server system. The goal is to understand how web applications are deployed, scaled, and made resilient in real-world scenarios.
 
 ---
 
-## 🧠 Infrastructure Overview
+## 📁 Project Structure
 
-This task outlines a simple one-server web stack for the domain `www.foobar.com`, using the following components:
-
-- **1 server** (IP: 8.8.8.8)
-- **Nginx** as the web server
-- **Application server** (e.g., Node.js, PHP-FPM, Gunicorn)
-- **Application codebase**
-- **MySQL database**
-- **Domain name:** `foobar.com` configured with a `www` subdomain pointing to `8.8.8.8` via an A record
+- `0-simple_web_stack`: One-server web infrastructure design
+- `1-distributed_web_infrastructure`: Distributed multi-server infrastructure with load balancing and replication
 
 ---
 
-## 🧩 How It Works (From User to Server)
+## 📌 0. Simple Web Stack
 
-1. A user opens a browser and types `www.foobar.com`.
-2. DNS resolves `www.foobar.com` to the IP address `8.8.8.8` using an **A record**.
-3. The user’s request reaches the server (IP: 8.8.8.8).
-4. **Nginx (web server)** receives the HTTP request.
-5. Nginx forwards the request to the **application server**, which runs the backend code.
-6. The application may query the **MySQL database** for data.
-7. The response flows back through the app server → Nginx → to the user.
+### 🧱 Components Used
 
----
+- 1 **Server** (IP: `8.8.8.8`)
+- 1 **Web Server**: Nginx
+- 1 **Application Server**
+- 1 **Database**: MySQL
+- 1 **Codebase**
+- 1 **Domain Name**: `www.foobar.com`
 
-## 📖 Key Explanations
+### 🌐 Flow Explanation
 
-### 🔹 What is a Server?
-A **server** is a computer or virtual machine that provides services, data, or resources to other computers (clients) over a network.
+1. The **user** sends a request to `www.foobar.com`.
+2. A **DNS lookup** translates `www.foobar.com` to IP `8.8.8.8` (a `CNAME` or `A` record).
+3. The request reaches the **web server (Nginx)** on the server.
+4. Nginx forwards the request to the **application server**.
+5. The **application** (e.g., PHP, Python) queries the **MySQL database** if needed.
+6. The app returns data to the **web server**, which then responds to the **user**.
 
-### 🔹 What is the Role of the Domain Name?
-A **domain name** maps a human-readable address (like `foobar.com`) to the numeric IP address (`8.8.8.8`) of your server, allowing users to access it easily.
+### 📖 Key Concepts
 
-### 🔹 What Type of DNS Record is `www` in `www.foobar.com`?
-It’s an **A record** (Address record), which maps a domain name or subdomain to an IPv4 address.
+- **Server**: A physical or virtual machine running services (Nginx, MySQL, etc.)
+- **Domain Name**: Human-readable alias for an IP address.
+- **DNS Record**: The `www` in `www.foobar.com` is typically a **CNAME** or **A** record.
+- **Web Server**: Handles HTTP requests and responses (Nginx).
+- **Application Server**: Runs dynamic content and business logic.
+- **Database**: Stores persistent application data.
+- **Communication**: HTTP(S) over TCP/IP from browser to server.
 
-### 🔹 What is the Role of the Web Server?
-The **web server (Nginx)** handles HTTP requests from the client and:
-- Serves static files (HTML, CSS, images)
-- Forwards dynamic requests to the application server (reverse proxy)
+### ⚠️ Issues
 
-### 🔹 What is the Role of the Application Server?
-The **application server** runs backend logic and communicates with the database to generate dynamic content (e.g., PHP, Node.js, Python backends).
+- **SPOF (Single Point of Failure)**: Only one server — if it crashes, everything is down.
+- **Maintenance Downtime**: Restarting any part of the stack causes unavailability.
+- **No Scalability**: Cannot handle traffic spikes.
 
-### 🔹 What is the Role of the Database?
-The **MySQL database** stores structured data (like users, orders, posts) and provides fast access to it when queried by the application server.
-
-### 🔹 What Protocol is Used for Communication?
-Communication between the user’s browser and the server happens over the **HTTP** or **HTTPS** protocol, which runs on top of **TCP/IP**.
-
----
-
-## ⚠️ Limitations of This Infrastructure
-
-| Limitation        | Description |
-|-------------------|-------------|
-| **SPOF** *(Single Point of Failure)* | If the one server crashes, the entire website goes down. |
-| **Downtime During Maintenance** | Any code deployment or server restart will make the website temporarily unavailable. |
-| **No Scalability** | The server has limited CPU, RAM, and bandwidth. It cannot handle high traffic or scale horizontally.
+📷 Whiteboard Diagram Screenshot:  
+[Simple Web Stack Diagram](https:https://imgur.com/a/k0wR6Dx)
 
 ---
 
-## 📁 File Structure
+## 📌 1. Distributed Web Infrastructure
+
+### 🧱 Components Used
+
+- 3 **Servers**:
+  - 2 **App/Web Servers**
+  - 1 **Load Balancer** (HAProxy)
+- 1 **Web Server** (Nginx)
+- 1 **Application Server**
+- 1 **Load Balancer** (HAProxy)
+- 1 **MySQL Database** (Primary/Replica setup)
+- 1 **Codebase**
+
+### 🌐 Flow Explanation
+
+1. The **user** requests `www.foobar.com`.
+2. DNS resolves the domain to the **Load Balancer IP**.
+3. The **load balancer (HAProxy)** distributes the traffic to one of the two backend servers.
+4. The **web server** (Nginx) handles the request and passes it to the **application server**.
+5. The **application** queries the **Primary MySQL DB** (writes) or **Replica** (reads).
+6. The response flows back to the user.
+
+### ⚙️ Load Balancer
+
+- **Algorithm**: Round Robin (default)
+- **How it works**: Alternates requests between servers to distribute load evenly.
+
+### 🔄 Active-Active vs Active-Passive
+
+- **Active-Active**: All servers are live and handle traffic simultaneously.
+- **Active-Passive**: Only one server handles traffic; the other stands by for failover.
+- This setup is **Active-Active** for web/app servers, but **Primary-Replica** for the DB.
+
+### 🗄️ Primary-Replica Database
+
+- **Primary (Master)**: Handles writes/updates.
+- **Replica (Slave)**: Syncs from master, handles reads.
+- Improves performance and availability.
+
+### ⚠️ Issues
+
+- **SPOF**: Load balancer (if not replicated).
+- **Security**: No firewall or HTTPS in current setup.
+- **Monitoring**: No visibility or alerting systems.
+
+📷 Whiteboard Diagram Screenshot:  
+[Distributed Web Infrastructure Diagram](https://imgur.com/a/RjgoKaE)
+
+---
+
+## 🔗 Repository Structure
 
